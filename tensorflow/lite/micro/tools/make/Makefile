@@ -187,11 +187,13 @@ CXXFLAGS := \
   -fno-exceptions \
   -fno-threadsafe-statics \
   -Wnon-virtual-dtor \
+  -g -O0\
   $(COMMON_FLAGS)
 
 CCFLAGS := \
   -Wimplicit-function-declaration \
   -std=c11 \
+  -g -O0 \
   $(COMMON_FLAGS)
 
 ARFLAGS := -r

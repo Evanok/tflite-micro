@@ -117,6 +117,7 @@ TfLiteStatus PrepareMeanOrSumHelper(TfLiteContext* context, TfLiteNode* node,
     op_data->output_scale = output->params.scale;
   }
 
+
   TF_LITE_ENSURE_OK(
       context,
       PrepareSimple(context, node, &(op_data->multiplier), &(op_data->shift)));
@@ -202,12 +203,14 @@ template <typename T>
 TfLiteStatus QuantizedProd(TfLiteContext* context, TfLiteNode* node,
                                 int* temp_index, int* resolved_axis,
                                 int32_t* temp_prod, OpDataReduce* op_data) {
+  printf ("[DEBUG][REDUCE_COMMOM] QuantizedProd\n");
   const TfLiteEvalTensor* input = tflite::micro::GetEvalInput(context, node, 0);
   const TfLiteEvalTensor* axis = tflite::micro::GetEvalInput(context, node, 1);
   TfLiteEvalTensor* output = tflite::micro::GetEvalOutput(context, node, 0);
   TfLiteReducerParams* params =
       static_cast<TfLiteReducerParams*>(node->builtin_data);
 
+  printf ("[DEBUG][REDUCE_COMMOM] QuantizedProd TUTU1\n");
   bool result = reference_ops::QuantizedProdExtraArgs<T, int32_t>(
       tflite::micro::GetTensorData<T>(input), op_data->input_zp,
       op_data->input_scale, &input->dims->data[0], input->dims->size,
@@ -216,8 +219,11 @@ TfLiteStatus QuantizedProd(TfLiteContext* context, TfLiteNode* node,
       &output->dims->data[0], output->dims->size,
       tflite::micro::GetTensorData<int>(axis), op_data->num_axis,
       params->keep_dims, temp_index, resolved_axis, temp_prod);
+  printf ("[DEBUG][REDUCE_COMMOM] QuantizedProd TUTU2\n");
   TF_LITE_ENSURE(context, result);
-
+  printf ("[DEBUG][REDUCE_COMMOM] QuantizedProd TUTU3\n");
+  printf ("[DEBUG][REDUCE_COMMOM] QuantizedProd temps prod 0 : %f\n", (double)temp_prod[0]);
+  printf ("[DEBUG][REDUCE_COMMOM] QuantizedProd temps prod 1 : %f\n", (double)temp_prod[1]);
   return kTfLiteOk;
 }
 
@@ -241,6 +247,8 @@ TfLiteStatus EvalMeanHelper(TfLiteContext* context, TfLiteNode* node,
   TfLiteEvalTensor* output = tflite::micro::GetEvalOutput(context, node, 0);
   TfLiteReducerParams* params =
       reinterpret_cast<TfLiteReducerParams*>(node->builtin_data);
+
+  printf ("[DEBUG] EvalMeanHelper\n");
 
   int num_axis = static_cast<int>(ElementCount(*axis->dims));
   int temp_index[kMaxNumberOfAxis];
@@ -428,6 +436,7 @@ TfLiteStatus EvalProdHelper(TfLiteContext* context, TfLiteNode* node,
     case kTfLiteInt8: {
       int32_t* temp_prod = static_cast<int32_t*>(
           context->GetScratchBuffer(context, op_data->temp_buffer_idx));
+      printf ("[DEBUG] Lets call QuantizedProd Baby\n");
       QuantizedProd<int8_t>(context, node, temp_index, resolved_axis,
                                  temp_prod, op_data);
     } break;

@@ -53,6 +53,18 @@ TfLiteStatus XtensaPrepareMax(TfLiteContext* context, TfLiteNode* node) {
   return kTfLiteOk;
 }
 
+TfLiteStatus XtensaPrepareProd(TfLiteContext* context, TfLiteNode* node) {
+  OpDataReduce* op_data =
+      &(static_cast<XtensaReduceOpData*>(node->user_data)->reference_op_data);
+  return PrepareProdHelper(context, node, op_data);
+}
+
+TfLiteStatus XtensaEvalProd(TfLiteContext* context, TfLiteNode* node) {
+  OpDataReduce* op_data =
+      &(static_cast<XtensaReduceOpData*>(node->user_data)->reference_op_data);
+  return EvalProdHelper(context, node, op_data);
+}
+
 TfLiteStatus XtensaPrepareMeanOrSum(TfLiteContext* context, TfLiteNode* node) {
   OpDataReduce* op_data =
       &(static_cast<XtensaReduceOpData*>(node->user_data)->reference_op_data);
@@ -113,6 +125,11 @@ TFLMRegistration Register_REDUCE_MAX() {
 TFLMRegistration Register_SUM() {
   return tflite::micro::RegisterOp(XtensaInitReduce, XtensaPrepareMeanOrSum,
                                    XtensaEvalSum);
+}
+
+TFLMRegistration Register_PROD() {
+  return tflite::micro::RegisterOp(XtensaInitReduce, XtensaPrepareProd,
+                                   XtensaEvalProd);
 }
 
 }  // namespace tflite

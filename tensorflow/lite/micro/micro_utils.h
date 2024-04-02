@@ -1,3 +1,4 @@
+
 /* Copyright 2019 The TensorFlow Authors. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -20,6 +21,7 @@ limitations under the License.
 #include <cmath>
 #include <cstdint>
 #include <limits>
+#include <stdio.h>
 
 #include "tensorflow/lite/c/common.h"
 
@@ -41,10 +43,12 @@ constexpr int Max(int a, int b) { return a >= b ? a : b; }
 template <typename T>
 T FloatToQuantizedType(const float value, const float scale, int zero_point) {
   int32_t result = round(value / scale) + zero_point;
+  //printf ("[DEBUG][FloatToQuantizedType] original result %f\n", (double)result);
   result =
       std::max(static_cast<int32_t>(std::numeric_limits<T>::min()), result);
   result =
       std::min(static_cast<int32_t>(std::numeric_limits<T>::max()), result);
+  //printf ("[DEBUG][FloatToQuantizedType] min/max result %f\n", (double)result);
   return result;
 }
 

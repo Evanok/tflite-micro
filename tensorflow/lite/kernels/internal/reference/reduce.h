@@ -16,6 +16,7 @@ limitations under the License.
 #define TENSORFLOW_LITE_KERNELS_INTERNAL_REFERENCE_REDUCE_H_
 
 #include <algorithm>
+#include <stdio.h>
 
 #include "ruy/profiler/instrumentation.h"  // from @ruy
 #include "tensorflow/lite/kernels/internal/common.h"
@@ -162,10 +163,16 @@ inline bool ReduceProdImpl(const In* input_data, const int* input_dims,
                            const int output_num_dims, const int* axis,
                            const int num_axis, int* input_iter,
                            Out* output_data) {
+  printf ("[DEBUG][ReduceProdImpl]\n");
   auto reducer = [](const Out current, const In in) -> Out {
+    printf ("[DEBUG] %d * %d -> %d\n", current, static_cast<Out>(in), current * static_cast<Out>(in));
     const Out actual_in = static_cast<Out>(in);
     return current * actual_in;
   };
+  for (unsigned int i = 0; i < 10; i++)
+  {
+    printf ("[DEBUG] input %d : %d\n", i, input_data[i]);
+  }
   return Reduce<In, Out>(input_data, input_dims, output_dims, input_num_dims,
                          output_num_dims, axis, num_axis, input_iter, reducer,
                          output_data);
@@ -226,6 +233,25 @@ inline bool ReduceGeneric(const T* input_data, const int* input_dims,
                       temp_index, reducer, output_data);
 }
 
+template <typename T, typename U>
+inline bool Prod(const T* input_data, const int* input_dims,
+                 const int input_num_dims, T* output_data,
+                 const int* output_dims, const int output_num_dims,
+                 const int* axis, const int num_axis_dimensions, bool keep_dims,
+                 int* temp_index, int* resolved_axis, U* temp_prod) {
+
+  printf ("[DEBUG] Prod\n");
+  return true;
+}
+
+inline void Prod(const tflite::MeanParams& op_params,
+                 const RuntimeShape& unextended_input_shape,
+                 const float* input_data,
+                 const RuntimeShape& unextended_output_shape,
+                 float* output_data) {
+  printf ("[DEBUG] Prod v2\n");
+}
+
 // Computes the mean of elements across dimensions given in axis.
 // It does so in two stages, first calculates the sum of elements along the axis
 // then divides it by the number of element in axis.
@@ -235,6 +261,9 @@ inline bool Mean(const T* input_data, const int* input_dims,
                  const int* output_dims, const int output_num_dims,
                  const int* axis, const int num_axis_dimensions, bool keep_dims,
                  int* temp_index, int* resolved_axis, U* temp_sum) {
+
+  printf ("[DEBUG] Mean\n");
+
   ruy::profiler::ScopeLabel label("Mean");
   // Reset output data.
   size_t num_outputs = 1;
@@ -290,6 +319,8 @@ inline void Mean(const tflite::MeanParams& op_params,
                  const RuntimeShape& unextended_output_shape,
                  float* output_data) {
   ruy::profiler::ScopeLabel label("Mean4D");
+
+  printf ("[DEBUG] Mean v2\n");
 
   // Current implementation only supports dimension equals 4 and simultaneous
   // reduction over width and height.
@@ -463,6 +494,9 @@ inline bool QuantizedProd(const T* input_data, int32_t input_zero_point,
   const int32_t kMaxValue = std::numeric_limits<T>::max();
   const bool uint8_case = std::is_same<T, uint8_t>::value;
   const bool int16_case = std::is_same<T, int16_t>::value;
+
+  printf ("[DEBUG][REDUCE] QuantizedProd\n");
+  
   if (uint8_case) {
     ruy::profiler::ScopeLabel label("Prod/Uint8");
   } else if (int16_case) {
@@ -481,8 +515,8 @@ inline bool QuantizedProd(const T* input_data, int32_t input_zero_point,
     num_outputs *= current;
   }
   for (size_t idx = 0; idx < num_outputs; ++idx) {
-    output_data[idx] = static_cast<T>(1);
     temp_prod[idx] = static_cast<U>(1);
+    output_data[idx] = static_cast<U>(1);
   }
 
   // Return early when input shape has zero dim. This is done after initializing
@@ -500,6 +534,7 @@ inline bool QuantizedProd(const T* input_data, int32_t input_zero_point,
     return false;
   }
 
+  printf ("[DEBUG] LETS CALL ReduceProdImpl\n");
   if (!ReduceProdImpl<T, U>(input_data, input_dims, output_dims, input_num_dims,
                            output_num_dims, resolved_axis, num_resolved_axis,
                            temp_index, temp_prod)) {
@@ -531,6 +566,10 @@ inline bool QuantizedProd(const T* input_data, int32_t input_zero_point,
     output = std::min(std::max(output, kMinValue), kMaxValue);
     output_data[idx] = static_cast<T>(output);
   }
+
+  printf ("[DEBUG][REDUCE] QuantizedProd output 0 %f\n", (double)output_data[0]);
+  printf ("[DEBUG][REDUCE] QuantizedProd output 1 %f\n", (double)output_data[1]);
+
   return true;
 }
 
@@ -546,6 +585,8 @@ inline bool QuantizedReduceProd(const T* input_data, int32_t input_zero_point,
                                 int32_t scaling_multiplier, int scaling_shift) {
   const int32_t kMinValue = std::numeric_limits<T>::min();
   const int32_t kMaxValue = std::numeric_limits<T>::max();
+
+  printf ("[DEBUG] QuantizedReduceProd\n");
 
   // Resolve axis.
   int num_resolved_axis = 0;
@@ -598,6 +639,7 @@ inline bool QuantizedProdExtraArgs(
   output_zero_point, RuntimeShape(output_num_dims), axis, num_axis_dimensions, keep_dims, temp_index,
       resolved_axis, temp_prod, output_multiplier, output_shift);
   */
+  printf ("[DEBUG][REDUCE] QuantizedProdExtraArgs\n");
   return QuantizedProd<T, U>(
       input_data, input_zero_point, input_dims, input_num_dims, output_data,
       output_multiplier, output_shift, output_zero_point, output_dims,

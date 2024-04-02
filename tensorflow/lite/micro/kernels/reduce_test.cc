@@ -77,6 +77,11 @@ TfLiteStatus ValidateReduceGoldens(TfLiteTensor* tensors, int tensors_size,
                                    const TFLMRegistration& registration,
                                    TfLiteReducerParams* params,
                                    float tolerance = 1e-5) {
+
+  for (int i = 0; i < output_length; ++i) {
+    printf ("[ValidateReduceGoldens][%d] BEFORE expected : %f, real: %f\n", i, (double)expected_output_data[i], (double)output_data[i]);
+  }
+
   int inputs_array_data[] = {2, 0, 1};
   TfLiteIntArray* inputs_array = IntArrayFromInts(inputs_array_data);
   int outputs_array_data[] = {1, 2};
@@ -89,6 +94,7 @@ TfLiteStatus ValidateReduceGoldens(TfLiteTensor* tensors, int tensors_size,
   TF_LITE_MICRO_EXPECT_EQ(kTfLiteOk, runner.Invoke());
 
   for (int i = 0; i < output_length; ++i) {
+    printf ("[ValidateReduceGoldens][%d] expected : %f, real: %f\n", i, (double)expected_output_data[i], (double)output_data[i]);
     TF_LITE_MICRO_EXPECT_NEAR(expected_output_data[i], output_data[i],
                               tolerance);
   }
@@ -141,6 +147,9 @@ void TestReduceOpQuantized(int* input_dims_data, const float* input_data,
   // Get number of elements in input and output tensors
   const int output_dims_count = ElementCount(*output_dims);
 
+
+  printf ("[DEBUG][TestReduceOpQuantized] BEF real quant %f\n", (double)output_data_quant[0]);
+
   // Initialize tensors
   constexpr int tensors_size = 3;
   TfLiteTensor tensors[] = {
@@ -151,9 +160,19 @@ void TestReduceOpQuantized(int* input_dims_data, const float* input_data,
                             output_zero_point),
   };
 
+  //printf ("[DEBUG][TestReduceOpQuantized] expec quant before %f\n", (double)expected_output_data_quant[0]);
+
   // Quantize expected output
   tflite::Quantize(expected_output_data, expected_output_data_quant,
                    output_dims_count, output_scale, output_zero_point);
+
+  //printf ("[DEBUG][TestReduceOpQuantized] input0  %f\n", (double)input_data[0]);
+  //printf ("[DEBUG][TestReduceOpQuantized] input0 quant %f\n", (double)input_data_quant[0]);
+  //printf ("[DEBUG][TestReduceOpQuantized] input1 %f\n", (double)input_data[1]);
+  //printf ("[DEBUG][TestReduceOpQuantized] input1 quant %f\n", (double)input_data_quant[1]);
+  printf ("[DEBUG][TestReduceOpQuantized] expec non quant %f\n", (double)expected_output_data[0]);
+  printf ("[DEBUG][TestReduceOpQuantized] expec quant %f\n", (double)expected_output_data_quant[0]);
+  printf ("[DEBUG][TestReduceOpQuantized] real quant %f\n", (double)output_data_quant[0]);
 
   TF_LITE_MICRO_EXPECT_EQ(
       kTfLiteOk,
@@ -642,6 +661,55 @@ TF_LITE_MICRO_TEST(ProdFloat2DKeepDims) {
       tflite::testing::kGoldenDataProd2D, tflite::Register_PROD(), &params);
 }
 
+TF_LITE_MICRO_TEST(ProdInt82DKeepDims) {
+  int8_t expected_output_data_quant[tflite::testing::kOutputElements2D];
+  int8_t output_data_quant[tflite::testing::kOutputElements2D];
+  int8_t input_data_quant[tflite::testing::kInputElements2D];
+
+  float input_scale = 0.5f;
+  int input_zero_point = 0;
+  float output_scale = 0.5f;
+  int output_zero_point = 0;
+
+  TfLiteReducerParams params = {
+      true  // keep_dims
+  };
+
+    printf ("[ProdInt82DKeepDims] input %f %f\n", (double)tflite::testing::kInputData2D[0], (double)tflite::testing::kInputData2D[7]);
+    printf ("[ProdInt82DKeepDims] output %f %f\n", (double)tflite::testing::kGoldenDataProd2D[0], (double)tflite::testing::kGoldenDataProd2D[1]);
+
+    tflite::testing::TestReduceOpQuantized<int8_t>(
+      tflite::testing::kInputShape2D, tflite::testing::kInputData2D,
+      input_data_quant, input_scale, input_zero_point,
+      tflite::testing::kAxisShape2D, tflite::testing::kAxisData2D,
+      tflite::testing::kOutputShape2D, tflite::testing::kGoldenDataProd2D,
+      output_data_quant, expected_output_data_quant, output_scale,
+      output_zero_point, tflite::Register_PROD(), &params, 1.0);
+}
+
+TF_LITE_MICRO_TEST(ProdInt162DKeepDims) {
+  int16_t expected_output_data_quant[tflite::testing::kOutputElements2D];
+  int16_t output_data_quant[tflite::testing::kOutputElements2D];
+  int16_t input_data_quant[tflite::testing::kInputElements2D];
+
+  float input_scale = 0.5f;
+  int input_zero_point = 0;
+  float output_scale = 0.5f;
+  int output_zero_point = 0;
+
+  TfLiteReducerParams params = {
+      true  // keep_dims
+  };
+
+  tflite::testing::TestReduceOpQuantized<int16_t>(
+      tflite::testing::kInputShape2D, tflite::testing::kInputData2D,
+      input_data_quant, input_scale, input_zero_point,
+      tflite::testing::kAxisShape2D, tflite::testing::kAxisData2D,
+      tflite::testing::kOutputShape2D, tflite::testing::kGoldenDataProd2D,
+      output_data_quant, expected_output_data_quant, output_scale,
+      output_zero_point, tflite::Register_PROD(), &params, 1.0);
+}
+
 TF_LITE_MICRO_TEST(SumFloatFlatten2ReduceDims) {
   int input_shape[] = {3, 4, 3, 2};
   int output_shape[] = {1, 4};
@@ -722,6 +790,8 @@ TF_LITE_MICRO_TEST(SumInt82DKeepDims) {
   TfLiteReducerParams params = {
       true  // keep_dims
   };
+
+  printf ("[DEBUG][REDUCE_TEST] NANI ??\n");
 
   tflite::testing::TestReduceOpQuantized<int8_t>(
       tflite::testing::kInputShape2D, tflite::testing::kInputData2D,
