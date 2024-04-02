@@ -210,7 +210,6 @@ TfLiteStatus QuantizedProd(TfLiteContext* context, TfLiteNode* node,
   TfLiteReducerParams* params =
       static_cast<TfLiteReducerParams*>(node->builtin_data);
 
-  printf ("[DEBUG][REDUCE_COMMOM] QuantizedProd TUTU1\n");
   bool result = reference_ops::QuantizedProdExtraArgs<T, int32_t>(
       tflite::micro::GetTensorData<T>(input), op_data->input_zp,
       op_data->input_scale, &input->dims->data[0], input->dims->size,
@@ -219,11 +218,7 @@ TfLiteStatus QuantizedProd(TfLiteContext* context, TfLiteNode* node,
       &output->dims->data[0], output->dims->size,
       tflite::micro::GetTensorData<int>(axis), op_data->num_axis,
       params->keep_dims, temp_index, resolved_axis, temp_prod);
-  printf ("[DEBUG][REDUCE_COMMOM] QuantizedProd TUTU2\n");
   TF_LITE_ENSURE(context, result);
-  printf ("[DEBUG][REDUCE_COMMOM] QuantizedProd TUTU3\n");
-  printf ("[DEBUG][REDUCE_COMMOM] QuantizedProd temps prod 0 : %f\n", (double)temp_prod[0]);
-  printf ("[DEBUG][REDUCE_COMMOM] QuantizedProd temps prod 1 : %f\n", (double)temp_prod[1]);
   return kTfLiteOk;
 }
 

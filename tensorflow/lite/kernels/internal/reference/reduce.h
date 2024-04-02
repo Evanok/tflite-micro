@@ -121,10 +121,13 @@ inline bool ResolveAxis(const int num_dims, const int* axis,
     // negative index 'n_idx' as: n_idx = p_idx-num_dims
     // eg: For num_dims=3, [0, 1, 2] is the same as [-3, -2, -1]  */
     int current = axis[idx] < 0 ? (axis[idx] + num_dims) : axis[idx];
+    printf ("[DEBUG][ResolveAxis] current %d\n", current);
+    printf ("[DEBUG][ResolveAxis] num_dims %d\n", num_dims);
     TFLITE_DCHECK(current >= 0 && current < num_dims);
     if (current < 0 || current >= num_dims) {
       return false;
     }
+    printf ("[DEBUG][ResolveAxis] lets continue baby\n");
     bool is_dup = false;
     for (int j = 0; j < *out_num_axis; ++j) {
       if (out_axis[j] == current) {
@@ -498,10 +501,13 @@ inline bool QuantizedProd(const T* input_data, int32_t input_zero_point,
   printf ("[DEBUG][REDUCE] QuantizedProd\n");
   
   if (uint8_case) {
+    printf ("[DEBUG][REDUCE] QuantizedProd Uint8\n");
     ruy::profiler::ScopeLabel label("Prod/Uint8");
   } else if (int16_case) {
+    printf ("[DEBUG][REDUCE] QuantizedProd Int16\n");
     ruy::profiler::ScopeLabel label("Prod/Int16");
   } else {
+    printf ("[DEBUG][REDUCE] QuantizedProd Int8\n");
     ruy::profiler::ScopeLabel label("Prod/Int8");
   }
   // Reset output data.
@@ -541,6 +547,9 @@ inline bool QuantizedProd(const T* input_data, int32_t input_zero_point,
     return false;
   }
 
+  printf ("[DEBUG][REDUCE] QuantizedProd temp_prod 0 %f\n", (double)temp_prod[0]);
+  printf ("[DEBUG][REDUCE] QuantizedProd temp_prod 1 %f\n", (double)temp_prod[1]);
+
   // Calculate num_elements_in_axis
   int64_t num_elements_in_axis = 1;
   for (int idx = 0; idx < num_resolved_axis; ++idx) {
@@ -556,6 +565,8 @@ inline bool QuantizedProd(const T* input_data, int32_t input_zero_point,
   if (num_elements_in_axis == 0) {
     return true;
   }
+
+  printf ("[DEBUG][REDUCE] QuantizedProd num_elements_in_axis %f\n", (double)num_elements_in_axis);
 
   for (size_t idx = 0; idx < num_outputs; ++idx) {
     const U shifted_prod =
@@ -586,7 +597,9 @@ inline bool QuantizedReduceProd(const T* input_data, int32_t input_zero_point,
   const int32_t kMinValue = std::numeric_limits<T>::min();
   const int32_t kMaxValue = std::numeric_limits<T>::max();
 
-  printf ("[DEBUG] QuantizedReduceProd\n");
+  printf ("[DEBUG] QuantizedReduceProd scaling : %f\n", (double)scaling_multiplier);
+  printf ("[DEBUG] QuantizedReduceProd input data 0 : %f\n", (double)input_data[0]);
+  printf ("[DEBUG] QuantizedReduceProd input data 7 : %f\n", (double)input_data[7]);
 
   // Resolve axis.
   int num_resolved_axis = 0;
@@ -598,6 +611,7 @@ inline bool QuantizedReduceProd(const T* input_data, int32_t input_zero_point,
   // Calculate the reduced product by rescaling each multiplication step to
   // avoid an overflow.
   auto reducer_first = [&](T in) -> int32_t { return in - input_zero_point; };
+
 
   auto reducer_next = [&](int32_t current, T in) -> int32_t {
     const int64_t result =
@@ -615,12 +629,15 @@ inline bool QuantizedReduceProd(const T* input_data, int32_t input_zero_point,
   }
 
   for (int i = 0; i < output_shape.FlatSize(); i++) {
+    printf ("[DEBUG] QuantizedReduceProd temp_prod %d : %f\n", i, (double)temp_prod[i]);
     int32_t result =
         MultiplyByQuantizedMultiplier(static_cast<int64_t>(temp_prod[i]),
                                       scaling_multiplier, scaling_shift) +
         output_zero_point;
     result = std::min(std::max(result, kMinValue), kMaxValue);
     output_data[i] = static_cast<T>(result);
+
+    printf ("[DEBUG] QuantizedReduceProd output_data %d : %f\n", i, (double)output_data[i]);
   }
 
   return true;
@@ -634,17 +651,17 @@ inline bool QuantizedProdExtraArgs(
     int32_t output_zero_point, const int* output_dims,
     const int output_num_dims, const int* axis, const int num_axis_dimensions,
     bool keep_dims, int* temp_index, int* resolved_axis, U* temp_prod) {
-  /*
-  return QuantizedReduceProd<T> (input_data, input_zero_point, RuntimeShape(input_num_dims), output_data,
-  output_zero_point, RuntimeShape(output_num_dims), axis, num_axis_dimensions, keep_dims, temp_index,
+  return QuantizedReduceProd<T> (input_data, input_zero_point, RuntimeShape(input_num_dims, input_dims), output_data,
+  output_zero_point, RuntimeShape(output_num_dims, output_dims), axis, num_axis_dimensions, keep_dims, temp_index,
       resolved_axis, temp_prod, output_multiplier, output_shift);
-  */
   printf ("[DEBUG][REDUCE] QuantizedProdExtraArgs\n");
+  /*
   return QuantizedProd<T, U>(
       input_data, input_zero_point, input_dims, input_num_dims, output_data,
       output_multiplier, output_shift, output_zero_point, output_dims,
       output_num_dims, axis, num_axis_dimensions, keep_dims, temp_index,
       resolved_axis, temp_prod);
+  */
 }
 
 }  // namespace reference_ops

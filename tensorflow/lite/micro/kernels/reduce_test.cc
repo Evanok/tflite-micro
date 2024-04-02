@@ -78,10 +78,6 @@ TfLiteStatus ValidateReduceGoldens(TfLiteTensor* tensors, int tensors_size,
                                    TfLiteReducerParams* params,
                                    float tolerance = 1e-5) {
 
-  for (int i = 0; i < output_length; ++i) {
-    printf ("[ValidateReduceGoldens][%d] BEFORE expected : %f, real: %f\n", i, (double)expected_output_data[i], (double)output_data[i]);
-  }
-
   int inputs_array_data[] = {2, 0, 1};
   TfLiteIntArray* inputs_array = IntArrayFromInts(inputs_array_data);
   int outputs_array_data[] = {1, 2};
@@ -148,7 +144,7 @@ void TestReduceOpQuantized(int* input_dims_data, const float* input_data,
   const int output_dims_count = ElementCount(*output_dims);
 
 
-  printf ("[DEBUG][TestReduceOpQuantized] BEF real quant %f\n", (double)output_data_quant[0]);
+  printf ("[DEBUG][TestReduceOpQuantized] Scale %f\n", (double)input_scale);
 
   // Initialize tensors
   constexpr int tensors_size = 3;
@@ -790,8 +786,6 @@ TF_LITE_MICRO_TEST(SumInt82DKeepDims) {
   TfLiteReducerParams params = {
       true  // keep_dims
   };
-
-  printf ("[DEBUG][REDUCE_TEST] NANI ??\n");
 
   tflite::testing::TestReduceOpQuantized<int8_t>(
       tflite::testing::kInputShape2D, tflite::testing::kInputData2D,
